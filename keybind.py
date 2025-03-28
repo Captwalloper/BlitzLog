@@ -1,3 +1,4 @@
+from __future__ import annotations
 import keyboard
 from PyQt6.QtWidgets import QDialog, QMainWindow
 import inspect
@@ -13,11 +14,17 @@ class Keybind:
         self.displayBind = arg
 
     @staticmethod
-    def SetupKeybinds(window: QMainWindow, keybinds: Iterable, helpKey: str):
+    def SetupKeybinds(window: QMainWindow, keybinds: Iterable[Keybind], helpKey: str = None):
         def ShowKeybinds():
             dlg = QDialog(window)
             dlg.setWindowTitle("\n".join(map(lambda x: f'Key: {x.key}, Bind: {x.displayBind}', keybinds)))
             dlg.exec()
-        keybinds.append(Keybind(helpKey, ShowKeybinds))
+        if (helpKey != None):
+            keybinds.append(Keybind(helpKey, ShowKeybinds))
         for keybind in keybinds:
             keyboard.on_press_key(keybind.key, keybind.bind)
+
+class BlitzBinds:
+    def __init__(self, completeMission: str = None, failMission: str = None):
+        self.completeMission = completeMission
+        self.failMission = failMission

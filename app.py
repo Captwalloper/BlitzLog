@@ -1,81 +1,117 @@
 import sys
 
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import pyqtSignal, QObject
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QTextEdit, QLabel
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLabel, QFrame
 
-from keybind import Keybind as KB
+from config import Config
+from keybind import BlitzBinds, Keybind as KB
 from blitz_log import BlitzLog
 from screenshotter import Screenshotter
 
-class MyEmitter(QObject):
+config = Config.ensureGet()
+screenshotter = Screenshotter(config)
+binds = BlitzBinds(
+    "f12", # Complete Mission 
+    "f9" # Fail Mission
+)
+blitzLog = BlitzLog()
+
+class KeybindEmitter(QObject):
     screenshot_taken = pyqtSignal()
+keybind_emitter = KeybindEmitter()
 
-keybind_emitter = MyEmitter()
-
-# Subclass QMainWindow to customize your application's main window
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.blitzLog = BlitzLog()
-
         self.setWindowTitle("BlitzLog")
 
+        top_layout = QHBoxLayout()
         self.startButton = QPushButton("START")
         self.startButton.clicked.connect(self.startClick)
+        top_layout.addWidget(self.startButton)
+        self.viewSourceScreenshotFolderButton = QPushButton("Settings")
+        self.viewSourceScreenshotFolderButton.clicked.connect(self.settingsClick)
+        top_layout.addWidget(self.viewSourceScreenshotFolderButton)
+        self.viewSourceScreenshotFolderButton = QPushButton()
+        self.viewSourceScreenshotFolderButton.setIcon(QIcon('icons/steam.png'))
+        self.viewSourceScreenshotFolderButton.clicked.connect(screenshotter.viewSourceFolder)
+        top_layout.addWidget(self.viewSourceScreenshotFolderButton)
+        self.viewDestScreenshotFolderButton = QPushButton()
+        self.viewDestScreenshotFolderButton.setIcon(QIcon('icons/op.svg'))
+        self.viewDestScreenshotFolderButton.clicked.connect(screenshotter.viewDestFolder)
+        top_layout.addWidget(self.viewDestScreenshotFolderButton)
 
-        self.completeMissionButton = QPushButton("Complete Mission")
-        self.completeMissionButton.clicked.connect(self.completeClick)
-
-        self.failMissionButton = QPushButton("Fail Mission")
+        mission_layout = QHBoxLayout()
+        self.completeMissionLabel = QLabel(f"Complete Mission [{binds.completeMission}]")
+        mission_layout.addWidget(self.completeMissionLabel)
+        self.failMissionButton = QPushButton(f"Fail Last Mission [{binds.failMission}]")
         self.failMissionButton.clicked.connect(self.failClick)
-
+        mission_layout.addWidget(self.failMissionButton)
         self.pointsLabel = QLabel()
+        mission_layout.addWidget(self.pointsLabel)
+
+        log_Layout = QVBoxLayout()
+        log_controls_layout = QHBoxLayout()
+        self.saveButton = QPushButton("Reload")
+        log_controls_layout.addWidget(self.saveButton)
+        self.saveButton.clicked.connect(self.reload)
+        self.loadButton = QPushButton("Overwrite")
+        log_controls_layout.addWidget(self.loadButton)
+        # self.loadButton.clicked.connect(self.settingsClick)
+        log_Layout.addLayout(log_controls_layout)
         self.logEdit = QTextEdit()
-        self.logEdit.setReadOnly(True)
+        # self.logEdit.setReadOnly(True)
+        log_Layout.addWidget(self.logEdit)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.startButton)
-        layout.addWidget(self.completeMissionButton)
-        layout.addWidget(self.failMissionButton)
-        layout.addWidget(self.pointsLabel)
-        layout.addWidget(self.logEdit)
-
+        outer_layout = QVBoxLayout()
+        outer_layout.addLayout(top_layout)
+        self.mission_controls = QFrame()
+        self.mission_controls.setLayout(mission_layout)
+        outer_layout.addWidget(self.mission_controls)
+        outer_layout.addLayout(log_Layout)
         window = QWidget()
-        window.setLayout(layout)
+        window.setLayout(outer_layout)
         self.setCentralWidget(window)
 
-        keybind_emitter.screenshot_taken.connect(self.completeClick)
+        self.mission_controls.setEnabled(False)
+        keybind_emitter.screenshot_taken.connect(self.completeMission)
 
     def startClick(self):
-        self.blitzLog.start()
+        blitzLog.start()
+        self.mission_controls.setEnabled(True)
         self.refresh()
 
-    def completeClick(self):
-        self.blitzLog.completeMission(0)
+    def settingsClick(self):
+        Config.viewInDefaultProgram()
+
+    def completeMission(self):
+        blitzLog.completeMission()
         self.refresh()
 
     def failClick(self):
-        self.blitzLog.failMission(0)
+        blitzLog.failLastMission()
         self.refresh()
 
     def refresh(self):
-        self.pointsLabel.setText(f'Points: {self.blitzLog.calcPoints()}')
-        self.logEdit.setPlainText(f'{self.blitzLog.toLog()}')
+        self.pointsLabel.setText(f'Points: {blitzLog.calcPoints()}')
+        self.logEdit.setPlainText(f'{blitzLog.toLog()}')
+
+    def reload(self):
+        config.reload()
+        self.refresh()
     
 app = QApplication(sys.argv)
-
 window = MainWindow()
+window.refresh()
 window.show()
 
-screenshotter = Screenshotter()
-screenshotter.setup()
 def handleScreenshot():
-    screenshotter.transfer(window.blitzLog.currentOp, window.blitzLog.currentMission)
+    screenshotter.transfer(blitzLog.nameScreenshot())
     keybind_emitter.screenshot_taken.emit()
-
 KB.SetupKeybinds(window, [
-    KB("f12", handleScreenshot)
-], "h")
+    KB(binds.completeMission, handleScreenshot)
+])
 
 app.exec()
