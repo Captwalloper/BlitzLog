@@ -19,6 +19,7 @@ blitzLog = BlitzLog()
 
 class KeybindEmitter(QObject):
     screenshot_taken = pyqtSignal()
+    fail_mission = pyqtSignal()
 keybind_emitter = KeybindEmitter()
 
 class MainWindow(QMainWindow):
@@ -47,7 +48,7 @@ class MainWindow(QMainWindow):
         self.completeMissionLabel = QLabel(f"Complete Mission [{binds.completeMission}]")
         mission_layout.addWidget(self.completeMissionLabel)
         self.failMissionButton = QPushButton(f"Fail Last Mission [{binds.failMission}]")
-        self.failMissionButton.clicked.connect(self.failClick)
+        self.failMissionButton.clicked.connect(self.failMission)
         mission_layout.addWidget(self.failMissionButton)
         self.pointsLabel = QLabel()
         mission_layout.addWidget(self.pointsLabel)
@@ -57,13 +58,13 @@ class MainWindow(QMainWindow):
         self.saveButton = QPushButton("Reload")
         log_controls_layout.addWidget(self.saveButton)
         self.saveButton.clicked.connect(self.reload)
-        self.loadButton = QPushButton("Overwrite")
-        log_controls_layout.addWidget(self.loadButton)
-        self.loadButton.clicked.connect(self.overwrite)
+        # self.loadButton = QPushButton("Overwrite")
+        # log_controls_layout.addWidget(self.loadButton)
+        # self.loadButton.clicked.connect(self.overwrite)
         log_Layout.addLayout(log_controls_layout)
         self.logEdit = QTextEdit()
         self.logEdit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        # self.logEdit.setReadOnly(True)
+        self.logEdit.setReadOnly(True)
         log_Layout.addWidget(self.logEdit)
 
         outer_layout = QVBoxLayout()
@@ -78,6 +79,7 @@ class MainWindow(QMainWindow):
 
         self.mission_controls.setEnabled(False)
         keybind_emitter.screenshot_taken.connect(self.completeMission)
+        keybind_emitter.fail_mission.connect(self.failMission)
 
     def startClick(self):
         blitzLog.start()
@@ -92,7 +94,7 @@ class MainWindow(QMainWindow):
         blitzLog.completeMission()
         self.refresh()
 
-    def failClick(self):
+    def failMission(self):
         blitzLog.failLastMission()
         self.refresh()
 
@@ -128,8 +130,11 @@ window.show()
 def handleScreenshot():
     screenshotter.transfer(blitzLog.nameScreenshot())
     keybind_emitter.screenshot_taken.emit()
+def handleFailMission():
+    keybind_emitter.fail_mission.emit()
 KB.SetupKeybinds(window, [
-    KB(binds.completeMission, handleScreenshot)
+    KB(binds.completeMission, handleScreenshot),
+    KB(binds.failMission, handleFailMission)
 ])
 
 app.exec()

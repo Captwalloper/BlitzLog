@@ -18,7 +18,7 @@ class BlitzLog:
     def calcPoints(self):
         points = 0
         for op in self.operations:
-            points += (3 if op.completed() else 0)
+            points += (1 if op.completed() else 0)
         return points
     
     def hasStarted(self):
@@ -54,7 +54,7 @@ class BlitzLog:
     def overwriteFrom(self, log: BlitzLog):
         self.operations.clear()
         self.operations.extend(log.operations)
-        self.TS.__startUtcIso = log.TS.__startUtcIso
+        self.TS.start(log.TS.startUtc().isoformat())
 
     def toLog(self):
         if (not self.hasStarted()):
@@ -73,22 +73,23 @@ class BlitzLog:
         log.operations.clear()
         lines = contents.splitlines()
         opNum = 1
-        for i in range(len(lines)):
-            if (i == 0):
+        i = 1
+        while i < len(lines):
+            if (i == 1):
                 # Start
-                if (not len(lines) >= 1 and lines[0].startswith('START')):
+                if (not len(lines) >= 2 and lines[i].startswith('START')):
                     return log
-                startLineTokens = lines[0].split('\t')
-                if (len(startLineTokens) != 4):
+                startLineTokens = lines[i].split('\t')
+                if (len(startLineTokens) != 5):
                     tokens = '\n'.join(startLineTokens)
-                    alert(f'Invalid startline, expected 4 segements (START, T, local, utc), found {tokens}')
+                    alert(f'Invalid startline, expected 4 segements (START, T, local, utc), found:\n{tokens}')
                     return log
-                log.start(startLineTokens[3].removeprefix('UTC: '))
+                log.start(startLineTokens[4].removeprefix('UTC: '))
             else:
                 # OPs
                 k = i
                 opLines: List[str] = []
-                while (k < len(lines) and lines[k].startswith(f"OP{opNum}")):
+                while (k < len(lines) and (lines[k].startswith(f"OP{opNum}") or lines[k].startswith('FAILED'))):
                     opLines.append(lines[k])
                     k += 1
                 if (len(opLines) > 0):
@@ -96,6 +97,9 @@ class BlitzLog:
                     log.operations.append(op)
                     opNum += 1
                 i = k
+            i += 1
+        if (len(log.operations) < 1):
+            log.beginNewOp()
         return log
     
 class Operation:
