@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 from time_stamper import TimeStamper as TS
 from util import alert
@@ -6,7 +7,7 @@ class BlitzLog:
     def __init__(self):
         self.operations: List[Operation] = []
         self.beginNewOp()
-        self.TS = TS('')
+        self.TS = TS()
 
     def currentOp(self):
         return len(self.operations)
@@ -21,10 +22,10 @@ class BlitzLog:
         return points
     
     def hasStarted(self):
-        return self.TS.startUtcIso != ''
+        return self.TS.startUtc() != None
     
     def start(self, startUtcIso: str = None):
-        self.TS.startUtcIso = startUtcIso if startUtcIso != None else TS.utc().isoformat()
+        self.TS.start(startUtcIso)
 
     def beginNewOp(self):
         self.operations.append(Operation())
@@ -49,11 +50,19 @@ class BlitzLog:
         op = self.currentOp()
         m = self.currentMission()
         return f'op{op}_m{m}.jpg' if m < 4 else f'op{op}_summary.jpg'
+    
+    def overwriteFrom(self, log: BlitzLog):
+        self.operations.clear()
+        self.operations.extend(log.operations)
+        self.TS.__startUtcIso = log.TS.__startUtcIso
 
     def toLog(self):
         if (not self.hasStarted()):
             return ''
-        lines: List[str] = [f'START\t{self.TS.stamp(self.TS.startUtcIso)}']
+        lines: List[str] = [
+            'Event\tElapsed\tSplit\tLocal\tUTC',
+            f'START\t{self.TS.startStamp()}'
+        ]
         for op in self.operations:
             lines.extend(op.toLines())
         return "\n".join(lines)
@@ -61,35 +70,39 @@ class BlitzLog:
     @staticmethod
     def fromLog(contents: str):
         log = BlitzLog()
+        log.operations.clear()
         lines = contents.splitlines()
         opNum = 1
         for i in range(len(lines)):
             if (i == 0):
                 # Start
-                if (not lines.count >= 1 and lines[0].startswith('START')):
+                if (not len(lines) >= 1 and lines[0].startswith('START')):
                     return log
-                startLineTokens = lines[0].split(' ')
-                if (startLineTokens != 4):
-                    alert(f'Invalid startline, expected 3 segements (START, T, local, utc), found {startLineTokens.count}')
+                startLineTokens = lines[0].split('\t')
+                if (len(startLineTokens) != 4):
+                    tokens = '\n'.join(startLineTokens)
+                    alert(f'Invalid startline, expected 4 segements (START, T, local, utc), found {tokens}')
                     return log
-                log.start(startLineTokens[3])
+                log.start(startLineTokens[3].removeprefix('UTC: '))
             else:
                 # OPs
                 k = i
                 opLines: List[str] = []
-                while (k < len(lines) and not lines[k].startswith(f"OP{opNum}")):
+                while (k < len(lines) and lines[k].startswith(f"OP{opNum}")):
                     opLines.append(lines[k])
                     k += 1
-                op = Operation.fromLines(opLines)
-                log.operations.append(op)
-                i += k
+                if (len(opLines) > 0):
+                    op = Operation.fromLines(opLines)
+                    log.operations.append(op)
+                    opNum += 1
+                i = k
         return log
-
-
+    
 class Operation:
     def __init__(self):
         self.missions: List[str] = []
         self.failed = False
+        self.startUtc = TS.utc()
 
     def completed(self):
         return len(self.missions) > 2 and not self.failed

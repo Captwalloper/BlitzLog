@@ -1,8 +1,9 @@
 # BlitzLog
 Helldivers 2 mission logger for people who wanna sweat a casual speedrun competition.
 
-See [Guide][1] for how to use
-and [Dev][2] for cryptic personal notes...
 
-[1]: <./guide.md>
-[2]: <./dev.md>
+See [Guide][2] for how to use
+and [Dev][3] for cryptic personal notes...
+
+[2]: <docs/guide.md>
+[3]: <docs/dev.md>

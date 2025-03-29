@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
+specpath = os.path.dirname(os.path.abspath(SPEC))
 a = Analysis(
     ['app.py'],
     pathex=[],
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon = os.path.join(specpath, 'icons', 'blitz.ico'),
 )

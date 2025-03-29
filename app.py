@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QFontMetrics
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLabel, QFrame
 
@@ -59,9 +59,10 @@ class MainWindow(QMainWindow):
         self.saveButton.clicked.connect(self.reload)
         self.loadButton = QPushButton("Overwrite")
         log_controls_layout.addWidget(self.loadButton)
-        # self.loadButton.clicked.connect(self.settingsClick)
+        self.loadButton.clicked.connect(self.overwrite)
         log_Layout.addLayout(log_controls_layout)
         self.logEdit = QTextEdit()
+        self.logEdit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         # self.logEdit.setReadOnly(True)
         log_Layout.addWidget(self.logEdit)
 
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
         blitzLog.start()
         self.mission_controls.setEnabled(True)
         self.refresh()
+        self.resizeLogWidth()
 
     def settingsClick(self):
         Config.viewInDefaultProgram()
@@ -101,8 +103,24 @@ class MainWindow(QMainWindow):
     def reload(self):
         config.reload()
         self.refresh()
+
+    def overwrite(self):
+        self.logEdit.repaint() # update text
+        logText = self.logEdit.toPlainText()
+        log = BlitzLog.fromLog(logText)
+        blitzLog.overwriteFrom(log)
+        self.refresh()
+
+    def resizeLogWidth(self):
+        font = self.logEdit.font()
+        metrics = QFontMetrics(font)
+        lines = self.logEdit.toPlainText().splitlines()
+        firstLongLine = '' if len(lines) < 2 else lines[1]
+        width = metrics.horizontalAdvance(firstLongLine + '                                        ')
+        self.logEdit.setMinimumWidth(width)
     
 app = QApplication(sys.argv)
+app.setWindowIcon(QIcon('icons/blitz.png'))
 window = MainWindow()
 window.refresh()
 window.show()

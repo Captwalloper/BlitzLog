@@ -174,3 +174,4 @@ cython_debug/
 
 #proj
 op_screenshots
+dist/config.ini

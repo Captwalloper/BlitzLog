@@ -1,22 +1,44 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import tz
+
+from util import alert
     
 class TimeStamper:
-    def __init__(self, startUtcIso: str):
-        self.startUtcIso = startUtcIso
+    def __init__(self, startUtcIso: str = None):
+        self.__startUtcIso = startUtcIso
+        self.__lastUtc = self.startUtc()
 
-    def stamp(self, nowUtcIso: str = None):
-        nowUtc = datetime.fromisoformat(nowUtcIso) if nowUtcIso != None else datetime.now(tz=tz.tzutc())
+    def stamp(self, nowUtc: datetime = None, splitUtc: datetime = None):
+        startUtc = self.startUtc()
+        lastUtc = self.__lastUtc if splitUtc == None else splitUtc
+        nowUtc = nowUtc if nowUtc != None else TimeStamper.utc()
         nowUtcIso = nowUtc.isoformat()
-        return f'T+{str(nowUtc - self.startUtc())}\tLocal: {TimeStamper.local(nowUtc).strftime("%I:%M %p")}\tUTC: {nowUtcIso}'
+        if (startUtc != nowUtc):
+            self.__lastUtc = nowUtc
+        return f'{TimeStamper.prettyDelta(nowUtc - startUtc)}\t{TimeStamper.prettyDelta(nowUtc - lastUtc)}\t{TimeStamper.local(nowUtc).strftime("%I:%M:%S %p")}\t{nowUtcIso}'
+    
+    def start(self, startUtcIso: str = None):
+        self.__startUtcIso = startUtcIso if startUtcIso != None else TimeStamper.utc().isoformat()
+        self.__lastUtc = datetime.fromisoformat(self.__startUtcIso)
     
     def startUtc(self):
-        return datetime.fromisoformat(self.startUtcIso)
-
+        return datetime.fromisoformat(self.__startUtcIso) if self.__startUtcIso != None else None
+    
+    def startStamp(self):
+        return self.stamp(self.startUtc(), self.startUtc())
+    
     @staticmethod
     def utc():
         return datetime.now(tz=tz.tzutc())
     
     @staticmethod
     def local(utc: datetime = None):
-        return (utc or datetime.now()).astimezone(tz.tzlocal())
+        return (utc or TimeStamper.utc()).astimezone(tz.tzlocal())
+    
+    @staticmethod
+    def prettyDelta(elapsed: timedelta):
+        total_seconds = int(elapsed.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
