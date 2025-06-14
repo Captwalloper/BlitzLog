@@ -2,10 +2,10 @@
 
 specpath = os.path.dirname(os.path.abspath(SPEC))
 a = Analysis(
-    ['app.py'],
+    [ 'code/app.py' ],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[ ('assets/', 'assets' ) ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon = os.path.join(specpath, 'icons', 'blitz.ico'),
+    icon = os.path.join(specpath, 'assets', 'icons', 'blitz.ico'),
 )
