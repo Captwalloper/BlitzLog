@@ -1,5 +1,5 @@
 # Notes
-* All commands assume workind directory of BlitzLog
+* All commands assume working directory of BlitzLog
 
 # Setup
 * get python3
@@ -10,9 +10,15 @@
 
 # Distribute (Windows only)
 * [pyinstaller](https://pyinstaller.org/en/stable/)
-* `pyi-makespec --onefile --windowed --name BlitzLog app.py`
+* *fresh start only* `pyi-makespec --onefile --windowed --name BlitzLog app.py`
 * `pyinstaller --clean BlitzLog.spec`
 * use Microsoft's DebugView to check the runtime errors
 
 # Test
 * `pytest`
+
+# Task runner
+* [invoke](https://www.pyinvoke.org/)
+* `invoke --help`
+* `invoke --list`
+* Examples: `invoke test`, `invoke restore build`

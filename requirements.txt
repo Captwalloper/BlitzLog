@@ -3,3 +3,4 @@ pyinstaller
 keyboard
 python-dateutil
 pytest
+invoke
