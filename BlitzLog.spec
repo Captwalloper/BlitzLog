@@ -2,7 +2,7 @@
 
 specpath = os.path.dirname(os.path.abspath(SPEC))
 a = Analysis(
-    [ 'code/app.py' ],
+    [ 'app/app.py' ],
     pathex=[],
     binaries=[],
     datas=[ ('assets/', 'assets' ) ],
